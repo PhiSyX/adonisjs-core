@@ -10,7 +10,7 @@
 import debug from '../debug.js'
 import { AceProcess } from './ace.js'
 import { TestRunnerProcess } from './test.js'
-import { HttpServerProcess } from './http.js'
+import { HttpServerProcess, HttpServerProcessCtorOptions } from './http.js'
 import { setApp } from '../../services/app.js'
 import { Application } from '../../modules/app.js'
 import type { AppEnvironments } from '../../types/app.js'
@@ -90,8 +90,8 @@ export class Ignitor {
   /**
    * Get instance of the HTTPServerProcess
    */
-  httpServer() {
-    return new HttpServerProcess(this)
+  httpServer(options?: HttpServerProcessCtorOptions) {
+    return new HttpServerProcess(this, options)
   }
 
   /**

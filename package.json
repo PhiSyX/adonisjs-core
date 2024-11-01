@@ -132,7 +132,7 @@
     "@adonisjs/fold": "^10.1.2",
     "@adonisjs/hash": "^9.0.5",
     "@adonisjs/health": "^2.0.0",
-    "@adonisjs/http-server": "^7.2.5",
+    "@adonisjs/http-server": "PhiSyX/adonisjs-http-server#034a645367",
     "@adonisjs/logger": "^6.0.3",
     "@adonisjs/repl": "^4.0.1",
     "@antfu/install-pkg": "^0.4.1",

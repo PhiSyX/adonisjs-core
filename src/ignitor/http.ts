@@ -7,12 +7,41 @@
  * file that was distributed with this source code.
  */
 
-import type { Server as NodeHttpsServer } from 'node:https'
-import { IncomingMessage, ServerResponse, Server as NodeHttpServer, createServer } from 'node:http'
+import type {
+  SecureServerOptions as Http2ServerOptions,
+  Http2Server,
+  Http2ServerRequest,
+  Http2ServerResponse,
+} from 'node:http2'
+import type { Server as HttpsServer, ServerOptions as HttpsServerOptions } from 'node:https'
+import type {
+  IncomingMessage,
+  ServerResponse,
+  Server as Http1Server,
+  ServerOptions as Http1ServerOptions,
+} from 'node:http'
+
+import { createSecureServer as createHttp2Server } from 'node:http2'
+import { createServer as createHttpsServer } from 'node:https'
+import { createServer as createHttp1Server } from 'node:http'
 
 import debug from '../debug.js'
 import { Ignitor } from './main.js'
 import type { ApplicationService, EmitterService, LoggerService } from '../types.js'
+
+type HttpServer = Http1Server | HttpsServer | Http2Server
+
+interface HttpServerOptions extends Http1ServerOptions, HttpsServerOptions, Http2ServerOptions {}
+
+type HttpServerRequest = IncomingMessage | Http2ServerRequest
+type HttpServerResponse = ServerResponse | Http2ServerResponse
+
+export interface HttpServerProcessCtorOptions extends HttpServerOptions {
+  /**
+   * Activer l'HTTPS
+   */
+  https: 1 | 2
+}
 
 /**
  * The HTTP server process is used to start the application in the
@@ -24,14 +53,20 @@ export class HttpServerProcess {
    */
   #ignitor: Ignitor
 
-  constructor(ignitor: Ignitor) {
+  /**
+   * Les options du serveur HTTP(s).
+   */
+  #httpOptions?: HttpServerProcessCtorOptions
+
+  constructor(ignitor: Ignitor, options?: HttpServerProcessCtorOptions) {
     this.#ignitor = ignitor
+    this.#httpOptions = options
   }
 
   /**
    * Calling this method closes the underlying HTTP server
    */
-  #close(nodeHttpServer: NodeHttpsServer | NodeHttpServer): Promise<void> {
+  #close(nodeHttpServer: HttpServer): Promise<void> {
     return new Promise((resolve) => {
       debug('closing http server process')
       nodeHttpServer.close(() => resolve())
@@ -42,11 +77,7 @@ export class HttpServerProcess {
    * Monitors the app and the server to close the HTTP server when
    * either one of them goes down
    */
-  #monitorAppAndServer(
-    nodeHttpServer: NodeHttpsServer | NodeHttpServer,
-    app: ApplicationService,
-    logger: LoggerService
-  ) {
+  #monitorAppAndServer(nodeHttpServer: HttpServer, app: ApplicationService, logger: LoggerService) {
     /**
      * Close the HTTP server when the application begins to
      * terminate
@@ -70,9 +101,7 @@ export class HttpServerProcess {
   /**
    * Starts the http server a given host and port
    */
-  #listen(
-    nodeHttpServer: NodeHttpsServer | NodeHttpServer
-  ): Promise<{ port: number; host: string }> {
+  #listen(nodeHttpServer: HttpServer): Promise<{ port: number; host: string }> {
     return new Promise((resolve, reject) => {
       const host = process.env.HOST || '0.0.0.0'
       const port = Number(process.env.PORT || '3333')
@@ -120,15 +149,36 @@ export class HttpServerProcess {
    */
   async start(
     serverCallback?: (
-      handler: (req: IncomingMessage, res: ServerResponse) => any
-    ) => NodeHttpsServer | NodeHttpServer
+      handler: (req: HttpServerRequest, res: HttpServerResponse) => any
+    ) => HttpServer
   ) {
     const startTime = process.hrtime()
 
     /**
      * Method to create the HTTP server
      */
-    const createHTTPServer = serverCallback || createServer
+    let createHTTPServer:
+      | ((
+          opt: HttpServerProcessCtorOptions,
+          handler: (req: HttpServerRequest, res: HttpServerResponse) => any
+        ) => HttpServer)
+      | ((handler: (req: HttpServerRequest, res: HttpServerResponse) => any) => HttpServer) =
+      serverCallback || createHttp1Server
+
+    switch (this.#httpOptions?.https) {
+      case 1:
+        {
+          createHTTPServer = createHttpsServer
+        }
+        break
+
+      case 2:
+        {
+          createHTTPServer = createHttp2Server
+        }
+        break
+    }
+
     const app = this.#ignitor.createApp('web')
 
     await app.init()
@@ -144,7 +194,9 @@ export class HttpServerProcess {
        * Create Node.js HTTP server instance and share it with the
        * AdonisJS HTTP server
        */
-      const httpServer = createHTTPServer(server.handle.bind(server))
+      // @ts-expect-error -- type à améliorer.
+      const httpServer = createHTTPServer(this.#httpOptions, server.handle.bind(server))
+      // @ts-expect-error -- type à améliorer.
       server.setNodeServer(httpServer)
 
       const logger = await app.container.make('logger')
