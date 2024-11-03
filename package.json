@@ -82,7 +82,7 @@
     "index:commands": "node --import=ts-node-maintained/register/esm toolkit/main.js index build/commands"
   },
   "devDependencies": {
-    "@adonisjs/assembler": "^7.8.2",
+    "@adonisjs/assembler": "PhiSyX/adonisjs-assembler#e9973b8a28",
     "@adonisjs/eslint-config": "^2.0.0-beta.7",
     "@adonisjs/prettier-config": "^1.4.0",
     "@adonisjs/tsconfig": "^1.4.0",

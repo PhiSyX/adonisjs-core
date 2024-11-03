@@ -7,13 +7,13 @@
  * file that was distributed with this source code.
  */
 
-import type {
-  SecureServerOptions as Http2ServerOptions,
-  Http2Server,
-  Http2ServerRequest,
-  Http2ServerResponse,
+import {
+  type SecureServerOptions as Http2ServerOptions,
+  type Http2Server,
+  type Http2ServerRequest,
+  type Http2ServerResponse,
 } from 'node:http2'
-import type { Server as HttpsServer, ServerOptions as HttpsServerOptions } from 'node:https'
+import { Server as HttpsServer, type ServerOptions as HttpsServerOptions } from 'node:https'
 import type {
   IncomingMessage,
   ServerResponse,
@@ -38,7 +38,7 @@ type HttpServerResponse = ServerResponse | Http2ServerResponse
 
 export interface HttpServerProcessCtorOptions extends HttpServerOptions {
   /**
-   * Activer l'HTTPS
+   * Activate HTTPS or HTTP2
    */
   https: 1 | 2
 }
@@ -101,15 +101,17 @@ export class HttpServerProcess {
   /**
    * Starts the http server a given host and port
    */
-  #listen(nodeHttpServer: HttpServer): Promise<{ port: number; host: string }> {
+  #listen(nodeHttpServer: HttpServer): Promise<{ protocol: string; port: number; host: string }> {
     return new Promise((resolve, reject) => {
       const host = process.env.HOST || '0.0.0.0'
       const port = Number(process.env.PORT || '3333')
+      // @ts-expect-error Https/Http2 properties
+      const protocol = nodeHttpServer.key && nodeHttpServer.cert ? 'https' : 'http'
 
       nodeHttpServer.listen(port, host)
       nodeHttpServer.once('listening', () => {
-        debug('listening to http server, host :%s, port: %s', host, port)
-        resolve({ port, host })
+        debug('listening to %s server, host :%s, port: %s', protocol, host, port)
+        resolve({ protocol, port, host })
       })
 
       nodeHttpServer.once('error', (error: NodeJS.ErrnoException) => {
