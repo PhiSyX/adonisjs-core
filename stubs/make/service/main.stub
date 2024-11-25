@@ -1,6 +1,10 @@
+{{#var serviceName = string(entity.name).pascalCase().suffix('Service')}}
 {{#var serviceFileName = generators.serviceFileName(entity.name)}}
 {{{
   exports({
     to: app.servicesPath(entity.path, serviceFileName)
   })
 }}}
+export class {{ serviceName }} {
+  // Your code here
+}
