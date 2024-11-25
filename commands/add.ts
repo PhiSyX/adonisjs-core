@@ -44,11 +44,13 @@ export default class Add extends BaseCommand {
    * Detect the package manager to use
    */
   async #getPackageManager() {
-    const pkgManager =
+    const packageManager =
       this.packageManager || (await detectPackageManager(this.app.makePath())) || 'npm'
 
-    if (KNOWN_PACKAGE_MANAGERS.includes(pkgManager)) {
-      return pkgManager
+    if (
+      KNOWN_PACKAGE_MANAGERS.some((knownPackageManager) => knownPackageManager === packageManager)
+    ) {
+      return packageManager as (typeof KNOWN_PACKAGE_MANAGERS)[number] | undefined
     }
 
     throw new Error('Invalid package manager. Must be one of npm, pnpm, bun or yarn')
