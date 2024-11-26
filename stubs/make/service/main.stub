@@ -1,4 +1,4 @@
-{{#var serviceName = string(entity.name).pascalCase().suffix('Service')}}
+{{#var serviceName = generators.serviceName(entity.name)}}
 {{#var serviceFileName = generators.serviceFileName(entity.name)}}
 {{{
   exports({
