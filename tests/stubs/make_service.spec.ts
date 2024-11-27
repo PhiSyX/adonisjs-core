@@ -31,6 +31,6 @@ test.group('Make Service', () => {
     })
 
     assert.equal(destination, join(BASE_PATH, 'app/services/app_service.ts'))
-    assert.equal(contents.trim(), '')
+    assert.match(contents.trim(), /export class AppService {/)
   })
 })
